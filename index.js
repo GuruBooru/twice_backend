@@ -82,10 +82,10 @@ function postingFacebook(token, message, image=null) {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        query: {
-            message: message,
-            accesstoken=token,
-        }
+        // query: {
+        //     message: message,
+        //     access_token=token,
+        // }
     };
 
     var httpreq= https.request(options, function(httpres) {

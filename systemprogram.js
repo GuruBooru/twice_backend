@@ -7,16 +7,16 @@ var fs = require('fs');
 
 const path = require('path');
 const router = express.Router();
-
+/*
 var connection = mysql.createConnection({
 	host : 'localhost',
 	user : 'root',
 	password : '1234',
 	database : 'twice'
-});
+});*/
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-
+/*
 app.post('/user-insert',(req,res)=> {
 	console.log('user-insert');
 	var data =req.body;
@@ -28,7 +28,7 @@ app.post('/user-insert',(req,res)=> {
 		else
 			res.json('success');
 	})
-})
+})*/
 
 app.get('/facebook',(req,res)=> {
         console.log('user-insert');

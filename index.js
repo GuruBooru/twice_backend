@@ -1,85 +1,93 @@
 const https = require('https');
-const mysql = require('promise-mysql');
+const mysql = require('mysql');
 const express =  require('express');
 const db_config = require('./db_config');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 
-mysql.createConnection(db_config).then(conn => { 
-    const app = express();
-    app.use(bodyParser.urlencoded({extended: true}));
-    app.use(bodyParser.json());
+const app = express();
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
 
-    app.set('port', 3377);
-    app.listen(app.get('port'), () => console.log('Twice server listening on port ' + app.get('port') + ' port'));
+app.set('port', 3322);
+app.listen(app.get('port'), () => console.log('Twice server listening on port ' + app.get('port') + ' port'));
 
-    const moment = require('moment');
-    require('moment-timezone');
-    moment.tz.setDefault("Asia/Seoul");
-
-    console.log('Twice table open');
-    conn.end();
+var con = mysql.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "1234",
+    database: "twice"
+  });
+  
+con.connect(function(err) {
+    if (err) console.log(err);
+    else
+        console.log("Connected!");
 });
 
-// API
-mysql.createConnection(db_config).then((conn) => {
-    // 글 저장
-    app.post('/booking', (req, res) => {
-        console.log(req.originalUrl);
 
-        var id = req.query.user_id;
-        var token = req.query.token;
-        var message = req.query.message;
-        var bookingTime = req.query.bookingTime;
-        // ... --> video
-
-        var query = `INSERT INTO booking (id, token, message, bookingTime)
-                     VALUES (${mysql.escape(id)}, ${mysql.escape(token)}, ${message},${bookingTime})`;
-
-        conn.query(query).then((result) => {
-            res.send({
-                status: 'success',
-                result: 'booking success'
-            });
-        }).catch((error) => {
-            res.send({
-                status: 'fail',
-                result: error
-            });
-        });
-    });
-
-    // 예약 전송
-    var j = schedule.scheduleJob('* 30 * * * *', function() {
-        console.log(moment().format('YYYY-MM-DD-HH:mm'));
-        var query = `SELECT token, message, image
-                    FROM booking 
-                    WHERE bookingTime = ${mysql.escape(moment().format('YYYY-MM-DD-HH:mm'))}`;
+app.post('/',function(req,res){
         
-        conn.query(query).then(result => {
-            for (let i = 0; i < result.length; i++) {
-                // 데이터 분할
-                let token = result[i].token;
-                let message = result[i].message;
-                if(result[i].image) {
-                    let image = result[i].image;
-                }
+})
+// API
+// mysql.createConnection(db_config).then((conn) => {
+//     // 글 저장
+//     app.post('/booking', (req, res) => {
+//         console.log(req.originalUrl);
+
+//         var id = req.query.user_id;
+//         var token = req.query.token;
+//         var message = req.query.message;
+//         var bookingTime = req.query.bookingTime;
+//         // ... --> video
+
+//         var query = `INSERT INTO booking (id, token, message, bookingTime)
+//                      VALUES (${mysql.escape(id)}, ${mysql.escape(token)}, ${message},${bookingTime})`;
+
+//         conn.query(query).then((result) => {
+//             res.send({
+//                 status: 'success',
+//                 result: 'booking success'
+//             });
+//         }).catch((error) => {
+//             res.send({
+//                 status: 'fail',
+//                 result: error
+//             });
+//         });
+//     });
+
+//     // 예약 전송
+//     var j = schedule.scheduleJob('* 30 * * * *', function() {
+//         console.log(moment().format('YYYY-MM-DD-HH:mm'));
+//         var query = `SELECT token, message, image
+//                     FROM booking 
+//                     WHERE bookingTime = ${mysql.escape(moment().format('YYYY-MM-DD-HH:mm'))}`;
+        
+//         conn.query(query).then(result => {
+//             for (let i = 0; i < result.length; i++) {
+//                 // 데이터 분할
+//                 let token = result[i].token;
+//                 let message = result[i].message;
+//                 if(result[i].image) {
+//                     let image = result[i].image;
+//                 }
                 
-                // 전송
-                postingFacebook(token, message, image);
-            }
-        }).catch(error => {
-            console.log('Post Upload fail' + moment().format('YYYY-MM-DD-HH:mm'));
-        });
-    });
-});
+//                 // 전송
+//                 postingFacebook(token, message, image);
+//             }
+//         }).catch(error => {
+//             console.log('Post Upload fail' + moment().format('YYYY-MM-DD-HH:mm'));
+//         });
+//     });
+// });
 
 function postingFacebook(token, message, image=null) {
     var url = `/feed/?message=${message}&access_token=${token}`;
     var resurl = encodeURI(url);
     var options = {
         host: 'graph.facebook.com',
-        port: 3377,
+        port: 443,
         path: resurl,
         method: 'POST',
         headers: {

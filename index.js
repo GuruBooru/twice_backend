@@ -13,22 +13,20 @@ app.set('port', 3322);
 app.listen(app.get('port'), () => console.log('Twice server listening on port ' + app.get('port') + ' port'));
 
 var con = mysql.createConnection({
-    host: "localhost",
-    user: "root",
+    host: "127.0.0.1",
+    user: "testuser",
     password: "1234",
     database: "twice"
   });
   
-con.connect(function(err) {
-    if (err) console.log(err);
-    else
-        console.log("Connected!");
+con.connect((err) => {
+    if (err) {
+        console.error('error connecting: ' + err.stack);
+        return;
+    }
+    else console.log("Connected!");
 });
 
-
-app.post('/',function(req,res){
-        
-})
 // API
 // mysql.createConnection(db_config).then((conn) => {
 //     // 글 저장

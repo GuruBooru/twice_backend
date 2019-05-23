@@ -135,7 +135,7 @@ function multiphotosData(r_url,r_token,r_post_id,r_message,callback){
 }
 
 //facebook에 실제로 올리는 function // 임시저장 게시물을 묶어서 보내는 형태
-function postingMultiphotosData(r_message,r_post_id,r_token,idlist){
+function postingMultiphotosData(r_message,r_post_id,r_token,idlist,r_res){
     data = querystring.stringify({
         message : r_message,
         attached_media : idlist,
@@ -163,14 +163,16 @@ function postingMultiphotosData(r_message,r_post_id,r_token,idlist){
             console.log(chunk);
         });
         httpsres.on('end',function(){
-            return postdata;
+            
+            //r_res.json(postdata);
+            //return postdata;
         })
     });
     httpsreq.write(data);
     httpsreq.end();
 }
 
-function decodeimage(access_image,filename,callback){
+function decodeimage(access_image,filename,num,callback){
     // var url_image = '/public/'+filename+'.jpg';
     var buf = Buffer.from(access_image,'base64');
         fs.writeFile(path.join(__dirname,'/public/',filename+'.jpg'), buf, function(error){
@@ -182,7 +184,7 @@ function decodeimage(access_image,filename,callback){
     }); 
 }
 //facebook multi 관련 총괄 function
-function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,r_res){
+function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,r_res){
     postingidlist=[];
     count = Object.keys(imagearray).length;
     postingobject = []
@@ -191,8 +193,8 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,r_re
         
         async.waterfall([
             function(callback){ // image에 대하여 decode 과정이 필요
-                var filename = r_posting_id+"_"+i;
-                decodeimage(imagearray[i],filename,function(url_image){
+                var filename = r_posting_id+"_"+i+'_'+num;
+                decodeimage(imagearray[i],filename,num,function(url_image){
                     callback(null, url_image)
                 });
             },
@@ -277,20 +279,28 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
     
 }
 
+function facebook_uploading_multi_posting(){
+
+}
 app.post('/facebook_page',function(req, res) {
-    
+    console.log('facebook_page is connected')
     if(req.body.facebook){ // facebook 인경우
         console.log('#facebook page is start');
 
-        if(req.body.facebook.data[0].time){
+        if(req.body.time){
             //facebook에 올리는 작업에 필요한 것들 db에 저장하기 imagearray/message/posting_id/token/time/
             //나중에 아래의 함수를 통해서 facebook에 업로드 하기
         }
         else{ // facebook에 올리는 작업
-            facebook_uploading(req.body.facebook.data[0].images,req.body.facebook.data[0].message,req.body.facebook.posting_id,req.body.facebook.token,res)
+            count = Object.keys(req.body.facebook.data).length;
+            console.log(count);
+            for(i = 0; i<count;i++){
+                facebook_uploading(req.body.facebook.data[i].images,req.body.facebook.data[i].message,req.body.facebook.data[i].posting_id,req.body.facebook.data[i].token,i,res)
+            }
         }
     }
-    
+    res.json('success');
+
 });
 
 function saveImageToDisk(url, localPath) {var fullUrl = url;
@@ -299,6 +309,12 @@ function saveImageToDisk(url, localPath) {var fullUrl = url;
     response.pipe(file);
     });
 }
+
+
+
+
+
+
 
 
 app.listen(8090);

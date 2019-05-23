@@ -5,17 +5,20 @@ const db_config = require('./db_config');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 
-const app = express();
-const moment = require('moment');
-require('moment-timezone');
-moment.tz.setDefaut("Asia/Seoul");
+mysql.createConnection(db_config).then(conn => { 
+    const app = express();
+    app.use(bodyParser.urlencoded({extended: true}));
+    app.use(bodyParser.json());
 
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
-app.set('port', 3377);
+    app.set('port', 3377);
+    app.listen(app.get('port'), () => console.log('Twice server listening on port ' + app.get('port') + ' port'));
 
-app.listen(app.get('port'), function() {
-    console.log('Twice server listening on port ' + app.get('port'))
+    const moment = require('moment');
+    require('moment-timezone');
+    moment.tz.setDefault("Asia/Seoul");
+
+    console.log('Twice table open');
+    conn.end();
 });
 
 // API
@@ -81,11 +84,7 @@ function postingFacebook(token, message, image=null) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        // query: {
-        //     message: message,
-        //     access_token=token,
-        // }
+        }
     };
 
     var httpreq= https.request(options, function(httpres) {

@@ -6,7 +6,7 @@ var buffer = require('buffer');
 var path = require('path');
 var fs = require('fs');
 var async = require('async');
-
+var Twitter = require('twitter');
 
 app.use(express.json({limit: '100mb'}));
 app.use(express.urlencoded({limit: '1000mb',extended:true}));
@@ -14,6 +14,9 @@ app.use('/public',express.static('public'));
 
 var this_url = 'http://100.24.24.64:8090'
 
+
+
+//FACEBOOK POSTING//
 function messageData(r_message,r_token){
      data= querystring.stringify({
         message : r_message,
@@ -49,7 +52,6 @@ function messageData(r_message,r_token){
 }
 
 function photosData(r_url,r_token,r_post_id,r_message){
-    
     data= querystring.stringify({
        url : this_url + r_url,
        access_token : r_token,
@@ -279,29 +281,6 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
     
 }
 
-function facebook_uploading_multi_posting(){
-
-}
-app.post('/facebook_page',function(req, res) {
-    console.log('facebook_page is connected')
-    if(req.body.facebook){ // facebook 인경우
-        console.log('#facebook page is start');
-
-        if(req.body.time){
-            //facebook에 올리는 작업에 필요한 것들 db에 저장하기 imagearray/message/posting_id/token/time/
-            //나중에 아래의 함수를 통해서 facebook에 업로드 하기
-        }
-        else{ // facebook에 올리는 작업
-            count = Object.keys(req.body.facebook.data).length;
-            console.log(count);
-            for(i = 0; i<count;i++){
-                facebook_uploading(req.body.facebook.data[i].images,req.body.facebook.data[i].message,req.body.facebook.data[i].posting_id,req.body.facebook.data[i].token,i,res)
-            }
-        }
-    }
-    res.json('success');
-
-});
 
 function saveImageToDisk(url, localPath) {var fullUrl = url;
     var file = fs.createWriteStream(localPath);
@@ -312,7 +291,118 @@ function saveImageToDisk(url, localPath) {var fullUrl = url;
 
 
 
+//TWITTER POSTING//
+//access_token이 받는 부분인것 같기도하고... //access token 부분은 후에 수정하기
+CONSUMER_KEY = 'L5nSnLJQZnHIeWvFqXgCOfTYE'
+CONSUMER_SECRET ='s5dVuVbQRi7NaJ0Gl6oAOC1nu3ab9wNMQpB4gWk9yyZgJJSqzc'
+ACCESS_TOKEN = '1093422729988960256-6qfauDfkxEZzhhE2ncDcLTpQrRQZth'
+TOKEN_SECRET = 'Lnbqbk4To9HWb29F5nVGN5DBVVBjFha1lTJqn03nOOxgY'
 
+
+function twitter_posting_i_m(r_status,r_images){ 
+    var client = new Twitter ({
+        consumer_key : CONSUMER_KEY,
+        consumer_secret : CONSUMER_SECRET,
+        access_token_key : ACCESS_TOKEN,
+        access_token_secret : TOKEN_SECRET
+    });
+    image_count = Object.keys(r_images).length;
+    if(image_count == 0){ // image non
+        console.log('#twitter_non image posting')
+        client.post('statuses/update',{status : r_status},function(error, tweet, response){
+            if (error) res.json(error);
+            else {res.json(tweet)};
+            //console.log(tweet);
+            //console.log(response);
+        })
+    }else{ // multi_image
+        console.log('#twitter_image posting')
+        async.waterfall([
+            function(callback){
+                //console.log(req.body.twitter)
+                result = posting_twitter(client,r_status,r_images)
+                callback(null, result)
+            },
+            function(err,result){            
+                //res.json(err);
+            }
+        ])
+    }
+}
+function posting_twitter(client,r_message,r_images){
+    var image_ids_t=''
+    count = Object.keys(r_images).length;
+    
+    for(i=0; i<count; i++){
+        (function(i,count,r_images,r_message,client){
+            client.post('media/upload', {media_data: r_images[i]}, function(error, media, response) {
+                if (!error) {
+                    console.log(i);
+                    console.log(image_ids_t)
+                    if(image_ids_t == ''){
+                        image_ids_t += media.media_id_string;
+                    }
+                    else{
+                        image_ids_t += (',' + media.media_id_string);
+                    }
+                    console.log('i'+i+'count'+ (count-1));
+                    if(i == (count-1)){
+                        console.log('statuses + '+image_ids_t);
+                        //post_data_t(image_ids_t,r_message);
+                        var status = {
+                          status: r_message, //이거 변경하기
+                          media_ids: image_ids_t // Pass the media id string
+                        }
+                        console.log(image_ids_t);
+                        console.log(r_message)
+                        console.log('update');
+                        client.post('statuses/update', status, function(error, tweet, response) {
+                            if (!error) {
+                                  console.log(tweet);
+                                  return (tweet);
+                              }else{
+                                  console.log(error);
+                                  return (error);
+                              }
+                        });
+                  
+                    }
+                
+                }
+                });
+        })(i,count,r_images,r_message,client)
+    }
+}
+
+
+
+
+//POSTING API//
+app.post('/facebook_page',function(req, res) {
+    console.log('facebook_page is connected')
+    if(req.body.time){ // 저장인 경우
+            //facebook에 올리는 작업에 필요한 것들 db에 저장하기 imagearray/message/posting_id/token/time/
+            //나중에 아래의 함수를 통해서 facebook에 업로드 하기
+    }
+    else{
+        if(req.body.facebook){ // facebook 인경우
+            console.log('#facebook page is start');
+
+            count = Object.keys(req.body.facebook.data).length;
+            console.log(count);
+
+            for(i = 0; i<count;i++){
+                facebook_uploading(req.body.facebook.data[i].images,req.body.facebook.data[i].message,req.body.facebook.data[i].posting_id,req.body.facebook.data[i].token,i,res)
+            }
+
+        }
+        if(req.body.twitter){
+            console.log('#twitter page is start');
+            twitter_posting_i_m(req.body.twitter.data[0].message,req.body.twitter.data[0].images);
+        }
+    }
+    res.json('success');
+});
 
 
 

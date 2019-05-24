@@ -51,36 +51,99 @@ app.post('/twitter_media',function(req,res){
         access_token_secret : TOKEN_SECRET
     });
 
+ //   var t_images = req.body.twitter.data[0].images;
+//    data_0 = require('fs').readFileSync('./public/2342358919319255_1.jpg');
+//    data_1 = require('fs').readFileSync('./public/2342358919319255_1.jpg');
     
-    data_0 = require('fs').readFileSync('./public/2342358919319255_1.jpg');
-    data_1 = require('fs').readFileSync('./public/2342358919319255_1.jpg');
-    
 
-// Make post request on media endpoint. Pass file data as media parameter
-    client.post('media/upload', [{media: data_0},{media:data_1}], function(error, media, response) {
-    if (!error) {
-
-    // If successful, a media object will be returned.
-    console.log(media);
-
-    // Lets tweet it
-    var status = {
-      status: 'I am a tweet', //이거 변경하기
-      media_ids: media.media_id_string // Pass the media id string
-    }
-
-    client.post('statuses/update', status, function(error, tweet, response) {
-      if (!error) {
-            console.log(tweet);
-            res.json(tweet);
-        }else{
-            res.json(error);
+    async.waterfall([
+        function(callback){
+            console.log(req.body.twitter)
+            result = posting_twitter(client,req.body.twitter.data[0].message,req.body.twitter.data[0].images)
+            callback(null, result)
+        },
+        function(err,result){            
+            res.json(err);
         }
-        });
-
-    }
-    });
+    ])
 })
 
+function post_data_t(r_media_ids,r_message){ //callback
+    data = querystring.stringify({
+         status:r_message,
+         media_ids : r_media_ids
+    })
+    console.log(r_media_ids);
+    
+    var options = {
+        host: 'api.twitter.com',
+        port: 443,
+        path: '/1.1/statuses/update.json',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(data),
 
+        }
+    };
+
+    var httpsreq = https.request(options, function(httpsres)
+    {
+        var postdata='';
+        httpsres.setEncoding('utf8');
+        httpsres.on('data', function (chunk) {
+            postdata+=chunk;
+        });
+        httpsres.on('end',function(){
+            console.log(postdata);
+            //callback(postdata)
+        })
+    });
+    httpsreq.write(data);
+    httpsreq.end();
+}
+
+function posting_twitter(client,r_message,r_images){
+    var image_ids_t=''
+    count = Object.keys(r_images).length;
+    
+    for(i=0; i<count; i++){
+        (function(i,count,r_images,r_message,client){
+            client.post('media/upload', {media_data: r_images[i]}, function(error, media, response) {
+                if (!error) {
+                    console.log(i);
+                    if(i == 0){
+                        image_ids_t += media.media_id_string;
+                    }
+                    else{
+                        image_ids_t += (',' + media.media_id_string);
+                    }
+                    console.log('i'+i+'count'+ (count-1));
+                    if(i == (count-1)){
+                        console.log('statuses + '+image_ids_t);
+                        //post_data_t(image_ids_t,r_message);
+                        var status = {
+                          status: r_message, //이거 변경하기
+                          media_ids: image_ids_t // Pass the media id string
+                        }
+                        console.log(image_ids_t);
+                        console.log(r_message)
+                        console.log('update');
+                        client.post('statuses/update', status, function(error, tweet, response) {
+                            if (!error) {
+                                  console.log(tweet);
+                                  return (tweet);
+                              }else{
+                                  console.log(error);
+                                  return (error);
+                              }
+                        });
+                  
+                    }
+                
+                }
+                });
+        })(i,count,r_images,r_message,client)
+    }
+}
 app.listen(8090);

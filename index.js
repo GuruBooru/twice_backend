@@ -9,7 +9,7 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.set('port', 3322);
+app.set('port', 3355);
 app.listen(app.get('port'), () => console.log('Twice server listening on port ' + app.get('port') + ' port'));
 
 var con = mysql.createConnection(db_config);
@@ -27,7 +27,7 @@ app.post('/booking', (req, res) => {
     var message = req.body.message;
     var bookingTime = req.body.bookingTime;
     // ... --> video
-    var query = `INSERT INTO booking (uid, token, bookingTime, message) VALUES (${id}, ${token}, ${bookingTime}, ${message})`;
+    var query = `INSERT INTO booking (uid, token, bookingTime, message) VALUES ('${id}', '${token}', '${bookingTime}', '${message}')`;
     console.log(query);
     con.query(query, (err) => {
         console.log('inserting query');

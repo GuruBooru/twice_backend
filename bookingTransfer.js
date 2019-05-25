@@ -22,7 +22,7 @@ moment.tz.setDefault("Asia/Seoul");
 // 예약 전송
 // 30분마다 실행
 var j = schedule.scheduleJob('*/30 * * * *', () => {
-    var query = `SELECT token, message, bookingTime, photo
+    var query = `SELECT uid, token, message, bookingTime, photo
                 FROM booking
                 WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`;
 

@@ -25,7 +25,8 @@ app.post('/booking', (req, res) => {
     var token = req.body.token;
     var message = req.body.message;
     var bookingTime = req.body.bookingTime;
-    // ... --> video
+
+    // photo 있을 때 없을 때 나누기
     var query = `INSERT INTO booking (uid, token, bookingTime, message) VALUES ('${id}', '${token}', '${bookingTime}', '${message}')`;
     console.log(query);
     con.query(query, (err) => {

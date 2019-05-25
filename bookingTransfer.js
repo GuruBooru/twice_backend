@@ -2,7 +2,7 @@ const mysql = require('mysql');
 const express = require('express');
 const db_config = require('./db_config');
 const schedule = require('node-schedule');
-const moment = require('moment');
+const transfer = require('./facebook.js');
 
 const app = express();
 app.set('port', 3322);
@@ -14,50 +14,27 @@ conn.query('SET GLOBAL connect_timeout=28800');
 conn.query('SET GLOBAL wait_timeout=28800');
 conn.query('SET GLOBAL interactive_timeout=28800');
 
+// 지역 설정
+const moment = require('moment');
+require('moment-timezone');
+moment.tz.setDefault("Asia/Seoul");
+
 // 예약 전송
 // 30분마다 실행
-var j = schedule.scheduleJob('*/1 * * * *', () => {
-    var query = `SELECT token, message, bookingTime
+var j = schedule.scheduleJob('*/30 * * * *', () => {
+    var query = `SELECT token, message, bookingTime, photo
                 FROM booking
-                WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`
+                WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`;
+
+    console.log(query);
 
     conn.query(query, (err, rows) => {
-        if(err){
+        if(rows.length == 0){
             console.log(err);
         } else {
             for (let i = 0; i < rows.length; i++) {
-                console.log(rows[i])
+                transfer.facebook_uploading(rows[i].photo, rows[i].message, rows[i].uid, rows[i].token);
             }
         }
-        // 전송
-        // postingFacebook(token, message, image);
     });
 });
-
-// function postingFacebook(token, message, image = null) {
-//     var url = `/feed/?message=${message}&access_token=${token}`;
-//     var resurl = encodeURI(url);
-//     var options = {
-//         host: 'graph.facebook.com',
-//         port: 443,
-//         path: resurl,
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/x-www-form-urlencoded',
-//         }
-//     };
-
-//     var httpreq = https.request(options, function (httpres) {
-//         var data = '';
-//         httpres.setEncoding('utf8');
-
-//         httpres.on('data', function (chunk) {
-//             console.log(chunk);
-//             data += chunk;
-//         })
-//         httpres.on('end', function () {
-//             res.send(data);
-//         })
-//     });
-//     httpreq.end()
-// }

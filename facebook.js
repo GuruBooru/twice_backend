@@ -23,7 +23,6 @@ function messageData(r_message,r_token){
         access_token : r_token,
      });
 
-
      var options = {
         host: 'graph.facebook.com',
         port: 443,
@@ -233,7 +232,8 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
         console.log('#facebook_posting')
         // count로 변경하기 
         imagecount = Object.keys(r_images).length;
-        /*if(count==1){ // 하나의 이미지에 대해서 전송하는 경우 
+        /*
+        if(count==1){ // 하나의 이미지에 대해서 전송하는 경우 
             console.log('#one_image_post');
             var access_image = req.body.image; //image base64
             var filename = posting_id+"_"+1;
@@ -261,7 +261,8 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
                 }
             ])
         }
-        else*/ 
+        else
+        */ 
         if(imagecount!=0){ // multi image 
             console.log('#posting multi image')
             posting_data_in_facebook(r_images,r_message,r_posting_id,r_token,res)  //정보를 통해서 사진 올리고 facebook 에 업로드 하는 함수
@@ -408,3 +409,8 @@ app.post('/facebook_page',function(req, res) {
 
 
 app.listen(8090);
+
+module.exports = {
+    facebook_uploading,
+    
+}

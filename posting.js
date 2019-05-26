@@ -83,19 +83,19 @@ function photosData(r_url,r_token,r_post_id,r_message){
     });
     httpreq.write(data);
     httpreq.end();
-    
+
 }
 /*
 function decoded(base64str,filename){
         var buf = Buffer.from(base64str,'base64');
-      
+
         fs.writeFile(path.join(__dirname,'/public/',filename+'.jpg'), buf, function(error){
           if(error){
             throw error;
           }else{
             return __dirname+'/public/'+filename+'.jpg';
           }
-        }); 
+        });
 }
 */
 function multiphotosData(r_url,r_token,r_post_id,r_message,callback){
@@ -107,7 +107,7 @@ function multiphotosData(r_url,r_token,r_post_id,r_message,callback){
         posting_id : r_post_id,
         access_token : r_token
     })
-    
+
     var options = {
         host: 'graph.facebook.com',
         port: 443,
@@ -143,7 +143,7 @@ function postingMultiphotosData(r_message,r_post_id,r_token,idlist,r_res){
         posting_id : r_post_id,
         access_token : r_token
     })
-    
+
     var options = {
         host: 'graph.facebook.com',
         port: 443,
@@ -164,7 +164,7 @@ function postingMultiphotosData(r_message,r_post_id,r_token,idlist,r_res){
             console.log(chunk);
         });
         httpsres.on('end',function(){
-            
+
             //r_res.json(postdata);
             //return postdata;
         })
@@ -182,16 +182,16 @@ function decodeimage(access_image,filename,num,callback){
     }else{
         callback('/public/'+filename+'.jpg');
     }
-    }); 
+    });
 }
 //facebook multi 관련 총괄 function
 function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,r_res){
     postingidlist=[];
     count = Object.keys(imagearray).length;
     postingobject = []
-    
+
     for(i=0;i<count;i++){
-        
+
         async.waterfall([
             function(callback){ // image에 대하여 decode 과정이 필요
                 var filename = r_posting_id+"_"+i+'_'+num;
@@ -211,7 +211,7 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,
             },
             function(test,callback){
                 testc= JSON.parse(test);
-                
+
                 temp = {media_fbid:testc.id};
                 postingobject.push(temp);
                 if(postingobject.length==count){
@@ -230,15 +230,15 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,
 
 function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
         console.log('#facebook_posting')
-        // count로 변경하기 
+        // count로 변경하기
         imagecount = Object.keys(r_images).length;
         /*
-        if(count==1){ // 하나의 이미지에 대해서 전송하는 경우 
+        if(count==1){ // 하나의 이미지에 대해서 전송하는 경우
             console.log('#one_image_post');
             var access_image = req.body.image; //image base64
             var filename = posting_id+"_"+1;
-            
-            //image formating and post url 
+
+            //image formating and post url
             async.waterfall([
                 function(callback){
                     var url_image = '/public/'+filename+'.jpg';
@@ -249,7 +249,7 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
                     }else{
                         return __dirname+'/public/'+filename+'.jpg';
                     }
-                    }); 
+                    });
                     callback(null, url_image)
                 },
                 function(url_image,callback){
@@ -262,8 +262,8 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
             ])
         }
         else
-        */ 
-        if(imagecount!=0){ // multi image 
+        */
+        if(imagecount!=0){ // multi image
             console.log('#posting multi image')
             posting_data_in_facebook(r_images,r_message,r_posting_id,r_token,res)  //정보를 통해서 사진 올리고 facebook 에 업로드 하는 함수
         }
@@ -274,14 +274,14 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
                     result = messageData(r_message,r_token)
                     callback(null, result)
                 },
-                function(err, result){            
+                function(err, result){
                     console.log(err);
                     console.log(result);
                     //res.json(result);
                 }
             ])
-        }  
-    
+        }
+
 }
 
 
@@ -302,7 +302,7 @@ ACCESS_TOKEN = '1093422729988960256-6qfauDfkxEZzhhE2ncDcLTpQrRQZth'
 TOKEN_SECRET = 'Lnbqbk4To9HWb29F5nVGN5DBVVBjFha1lTJqn03nOOxgY'
 
 
-function twitter_posting_i_m(r_status,r_images){ 
+function twitter_posting_i_m(r_status,r_images){
     var client = new Twitter ({
         consumer_key : CONSUMER_KEY,
         consumer_secret : CONSUMER_SECRET,
@@ -326,7 +326,7 @@ function twitter_posting_i_m(r_status,r_images){
                 result = posting_twitter(client,r_status,r_images)
                 callback(null, result)
             },
-            function(err,result){            
+            function(err,result){
                 //res.json(err);
             }
         ])
@@ -335,7 +335,7 @@ function twitter_posting_i_m(r_status,r_images){
 function posting_twitter(client,r_message,r_images){
     var image_ids_t=''
     count = Object.keys(r_images).length;
-    
+
     for(i=0; i<count; i++){
         (function(i,count,r_images,r_message,client){
             client.post('media/upload', {media_data: r_images[i]}, function(error, media, response) {
@@ -368,9 +368,9 @@ function posting_twitter(client,r_message,r_images){
                                   return (error);
                               }
                         });
-                  
+
                     }
-                
+
                 }
                 });
         })(i,count,r_images,r_message,client)
@@ -414,5 +414,5 @@ app.listen(3355);
 
 module.exports = {
     facebook_uploading,
-    
+
 }

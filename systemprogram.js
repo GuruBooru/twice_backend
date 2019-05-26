@@ -2,33 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 const port = 3366;
-var mysql = require('mysql');
 var fs = require('fs');
 
 const path = require('path');
-const router = express.Router();
-/*
-var connection = mysql.createConnection({
-	host : 'localhost',
-	user : 'root',
-	password : '1234',
-	database : 'twice'
-});*/
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-/*
-app.post('/user-insert',(req,res)=> {
-	console.log('user-insert');
-	var data =req.body;
-	console.log(data.id);
-	console.log('connect: '  + req.body.id);
-	var q = 'INSERT INTO USER (userID, password) VALUES = ?';
-	connection.query(q,[req.body.id,req.body.pass],(err, rows, field)=>{
-		if(err) throw err;
-		else
-			res.json('success');
-	})
-})*/
 
 app.get('/facebook',(req,res)=> {
         console.log('user-insert');
@@ -92,8 +71,7 @@ app.get('/video', function(req, res) {
 	  res.writeHead(200, head)
 	  fs.createReadStream(path).pipe(res)
 	}
-			});
-			
+});
 
 
 app.listen(port, () => console.log('listen'))

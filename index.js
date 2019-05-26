@@ -71,7 +71,20 @@ app.post('/booking', (req, res) => {
 
 function postingSave(uid, token, postId) {
     var query = `UPDATE booking SET bookingcol = '${postId}'
-                WHERE uid = '${uid}' `
+                WHERE uid = '${uid}' AND token = '${token}'`;
+    console.log(query);
+
+    conn.query(query, (err) => {
+        console.log('Updating query');
+        if(err) {
+            res.json({
+                status: 'fail',
+                result: err,
+            });
+        } else {
+            res.send('Update Success');
+        }
+    });
 }
 
 module.exports = {

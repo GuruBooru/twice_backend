@@ -15,9 +15,8 @@ app.use('/public',express.static('public'));
 var this_url = 'http://100.24.24.64:8090'
 
 
-
 //FACEBOOK POSTING//
-function messageData(r_message,r_token){
+function messageData(r_message,r_token,callback3){
      data= querystring.stringify({
         message : r_message,
         access_token : r_token,
@@ -40,11 +39,13 @@ function messageData(r_message,r_token){
         var postdata='';
         httpres.setEncoding('utf8');
         httpres.on('data', function (chunk) {
-            console.log("body: " + chunk);
             postdata+=chunk;
         });
         httpres.on('end',function(){
-            return postdata;
+            console.log('postdata' + postdata);
+            facebook_finish = 1;
+            facebook_finish_info = postdata;
+            callback3(facebook_finish_info);
         })
     });
     httpreq.write(data);
@@ -128,7 +129,6 @@ function multiphotosData(r_url,r_token,r_post_id,r_message,callback){
             postdata+=chunk;
         });
         httpsres.on('end',function(){
-            console.log(postdata);
             callback(postdata)
         })
     });
@@ -162,7 +162,6 @@ function postingMultiphotosData(r_message,r_post_id,r_token,idlist,r_res){
         httpsres.setEncoding('utf8');
         httpsres.on('data', function (chunk) {
             postdata+=chunk;
-            console.log(chunk);
         });
         httpsres.on('end',function(){
             
@@ -186,7 +185,7 @@ function decodeimage(access_image,filename,num,callback){
     }); 
 }
 //facebook multi 관련 총괄 function
-function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,r_res){
+function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,callback3){
     postingidlist=[];
     count = Object.keys(imagearray).length;
     postingobject = []
@@ -215,12 +214,21 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,
                 
                 temp = {media_fbid:testc.id};
                 postingobject.push(temp);
-                if(postingobject.length==count){
-                    postingMultiphotosData(r_message,r_posting_id,r_token,JSON.stringify(postingobject));
+                if(postingobject.length==count){                
+                    facebook_finish_info = postingMultiphotosData(r_message,r_posting_id,r_token,JSON.stringify(postingobject));
                 }
                 callback(null,postingidlist)
             },function(postinglist,callback){
-                //r_res.json()
+                //facebook_posting
+                
+                facebook_finish = 1;
+                if(is_facebook_posting&is_twitter_posting){
+                    if(facebook_finish&twitter_finish){
+                        callback3(facebook_finish_info+twitter_finish_info);
+                    }
+                }else{
+                    callback3(facebook_finish_info);
+                }
             }
         ])
     }
@@ -229,10 +237,10 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,
 
 
 
-function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
+function facebook_uploading(r_images,r_message,r_posting_id,r_token,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting,callback2,callback3){
         console.log('#facebook_posting')
-        // count로 변경하기 
         imagecount = Object.keys(r_images).length;
+        console.log('twitter_is'+is_twitter_posting);
         /*if(count==1){ // 하나의 이미지에 대해서 전송하는 경우 
             console.log('#one_image_post');
             var access_image = req.body.image; //image base64
@@ -264,17 +272,32 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
         else*/ 
         if(imagecount!=0){ // multi image 
             console.log('#posting multi image')
-            posting_data_in_facebook(r_images,r_message,r_posting_id,r_token,res)  //정보를 통해서 사진 올리고 facebook 에 업로드 하는 함수
+            posting_data_in_facebook(r_images,r_message,r_posting_id,r_token,function(data){
+                callback2(data);
+            })  //정보를 통해서 사진 올리고 facebook 에 업로드 하는 함수
         }
         else{ //image가 없는 경우
-            console.log('#message');
+            console.log('#facebook_posting_message');
             async.waterfall([
                 function(callback){
-                    result = messageData(r_message,r_token)
+                    result = messageData(r_message,r_token,function(data){
+                        facebook_finish_info = data;
+                        twitter_finish = 1;
+                        if(is_facebook_posting&is_twitter_posting){
+                            console.log('#facebook_twitter_message_is in');
+                            if(facebook_finish&twitter_finish){
+                                console.log('#facebook_twitter_message_done with f')
+                                callback3(facebook_finish_info,twitter_finish_info);
+                            }
+                        }else{
+                            console.log('#facebook message callback3');
+                            console.log('facebook info : '+ facebook_finish_info);
+                            callback2(facebook_finish_info);
+                        } 
+                    })
                     callback(null, result)
                 },
-                function(err,result){            
-                    res.json(result);
+                function(err,result){       
                 }
             ])
         }  
@@ -299,7 +322,7 @@ ACCESS_TOKEN = '1093422729988960256-6qfauDfkxEZzhhE2ncDcLTpQrRQZth'
 TOKEN_SECRET = 'Lnbqbk4To9HWb29F5nVGN5DBVVBjFha1lTJqn03nOOxgY'
 
 
-function twitter_posting_i_m(r_status,r_images){ 
+function twitter_posting_i_m(r_status,r_images,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting,callback2){ 
     var client = new Twitter ({
         consumer_key : CONSUMER_KEY,
         consumer_secret : CONSUMER_SECRET,
@@ -310,8 +333,34 @@ function twitter_posting_i_m(r_status,r_images){
     if(image_count == 0){ // image non
         console.log('#twitter_non image posting')
         client.post('statuses/update',{status : r_status},function(error, tweet, response){
-            if (error) res.json(error);
-            else {res.json(tweet)};
+            twitter_finish = 1
+            if (error) {
+                twitter_finish_info = error;
+                
+                callback2(twitter_finish_info)
+                /*if(is_facebook_posting&is_twitter_posting){
+                    console.log('twitter posting with facebook_m')
+                    if(facebook_finish&twitter_finish){
+                        console.log('finish_posting');
+                        callback2(facebook_finish_info + twitter_finish_info);
+                    }
+                }else{
+                    console.log('#twitter_info is done posting');
+                    callback2(twitter_finish_info);
+                }*/
+            }
+            else {
+                twitter_finish_info = tweet;
+                callback2(twitter_finish_info)
+                /*
+                if(is_facebook_posting&is_twitter_posting){
+                    if(facebook_finish&twitter_finish){
+                        callback2(facebook_finish_info+twitter_finish_info);
+                    }
+                }else{
+                    callback2(twitter_finish_info);
+                }*/
+            };
             //console.log(tweet);
             //console.log(response);
         })
@@ -320,10 +369,20 @@ function twitter_posting_i_m(r_status,r_images){
         async.waterfall([
             function(callback){
                 //console.log(req.body.twitter)
-                result = posting_twitter(client,r_status,r_images)
+                twitter_finish_info = posting_twitter(client,r_status,r_images)
+                twitter_finish = 1;
                 callback(null, result)
             },
-            function(err,result){            
+            function(err,result){
+                console.log('twitter_finish posting' + twitter_finish_info);
+                callback2(twitter_finish_info);
+                /*if(is_facebook_posting&is_twitter_posting){
+                    if(facebook_finish&twitter_finish){
+                        callback3(facebook_finish_info, twitter_finish_info);
+                    }
+                }else{
+                    callback2(twitter_finish_info);
+                }*/
                 //res.json(err);
             }
         ])
@@ -369,42 +428,76 @@ function posting_twitter(client,r_message,r_images){
                     }
                 
                 }
-                });
+            });
         })(i,count,r_images,r_message,client)
     }
 }
 
 
 
-
 //POSTING API//
 app.post('/facebook_page',function(req, res) {
+    var facebook_finish = 0;
+    var twitter_finish = 0;
+    var facebook_finish_info = '';
+    var twitter_finish_info = '';
+    var is_twitter_posting = 0;
+    var is_facebook_posting = 0;
+
+    console.log(facebook_finish);
     console.log('facebook_page is connected')
     if(req.body.time){ // 저장인 경우
             //facebook에 올리는 작업에 필요한 것들 db에 저장하기 imagearray/message/posting_id/token/time/
             //나중에 아래의 함수를 통해서 facebook에 업로드 하기
     }
     else{
+        isTime = 0;
+        var jsonp = ''
         if(req.body.facebook){ // facebook 인경우
+            is_facebook_posting = 1;
             console.log('#facebook page is start');
-
             count = Object.keys(req.body.facebook.data).length;
-            console.log(count);
 
             for(i = 0; i<count;i++){
-                facebook_uploading(req.body.facebook.data[i].images,req.body.facebook.data[i].message,req.body.facebook.data[i].posting_id,req.body.facebook.data[i].token,i,res)
+                facebook_uploading(req.body.facebook.data[i].images,req.body.facebook.data[i].message,req.body.facebook.data[i].posting_id,req.body.facebook.data[i].token,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function(data){
+                    facebook_finish_info += data;
+                    if(facebook_finish_info =='')
+                        jsonp = JSON.parse('{"facebook":"'+facebook_finish_info+'","twitter":'+JSON.stringify(twitter_finish_info)+'}');
+                    else
+                        jsonp = JSON.parse('{"facebook":'+facebook_finish_info+',"twitter":'+JSON.stringify(twitter_finish_info)+'}');
+                    facebook_finish = 1;
+
+                    if((facebook_finish) & (is_twitter_posting == twitter_finish)){
+                        if(!isTime){
+                            console.log(jsonp);
+                            res.json(jsonp);
+                        } 
+                    }
+                })
             }
 
         }
         if(req.body.twitter){
+            is_twitter_posting = 1;
             console.log('#twitter page is start');
-            twitter_posting_i_m(req.body.twitter.data[0].message,req.body.twitter.data[0].images);
+            twitter_posting_i_m(req.body.twitter.data[0].message,req.body.twitter.data[0].images,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function(data){
+                console.log('twitter finish_info data' + JSON.stringify(data));    
+                twitter_finish_info = data;
+                if(facebook_finish_info =='')
+                    jsonp = JSON.parse('{"facebook":"'+facebook_finish_info+'","twitter":'+JSON.stringify(twitter_finish_info)+'}');
+                else
+                    jsonp = JSON.parse('{"facebook":'+facebook_finish_info+',"twitter":'+JSON.stringify(twitter_finish_info)+'}');
+                
+                twitter_finish = 1;
+                if((facebook_finish == is_facebook_posting) & twitter_finish){
+                    if(!isTime){
+                        console.log(jsonp);
+                        res.json(jsonp);
+                    } 
+                }
+            });
         }
     }
-    res.json('success');
 });
-
-
-
 
 app.listen(8090);

@@ -25,7 +25,15 @@ moment.tz.setDefault("Asia/Seoul");
 
 // 예약 전송
 // 30분마다 실행
-var j = schedule.scheduleJob('*/30 * * * *', (res) => {
+var j = schedule.scheduleJob('*/1 * * * *', (res) => {
+    var facebook_finish = 0;
+    var facebook_finish_info = '';
+    var is_facebook_posting = 0;
+    var twitter_finish = 0;
+    var twitter_finish_info = '';
+    var is_twitter_posting = 0;
+
+
     var query = `SELECT uid, token, message, bookingTime, photo
                 FROM booking
                 WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`;
@@ -37,10 +45,44 @@ var j = schedule.scheduleJob('*/30 * * * *', (res) => {
         if (err) {
             console.log(err);
         } else {
+            var jsonp = '';
+
             for (let i = 0; i < rows.length; i++) {
-                posting.facebook_uploading(rows[i].photo, rows[i].message, rows[i].uid, rows[i].token, res);
+                // facebook posting
+                posting.facebook_uploading(rows[i].photo, rows[i].message, rows[i].uid, rows[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
+                    facebook_finish_info += data;
+                    if (facebook_finish_info == '')
+                        jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                    else
+                        jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                    facebook_finish = 1;
+
+                    if ((facebook_finish) & (is_twitter_posting == twitter_finish)) {
+                        console.log(jsonp);
+                        res.json(jsonp);
+                    }
+                });
+
+                // twitter posting
+                // posting.twitter_posting_i_m('', rows[i].photo, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posing, (data) => {
+                //     console.log('twitter finish_info data' + JSON.stringify(data));
+                //     twitter_finish_info = data;
+                //     if (facebook_finish_info == '')
+                //         jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                //     else
+                //         jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
+
+                //     console.log(jsonp);
+
+                //     twitter_finish = 1;
+                //     if ((facebook_finish == is_facebook_posting) & twitter_finish) {
+                //         console.log(jsonp);
+                //         res.json(jsonp);
+
+                //     }
+                // });
             }
-         }
+        }
     });
 });
 
@@ -80,7 +122,7 @@ function postingSave(uid, token, postId) {
 
     conn.query(query, (err) => {
         console.log('Updating query');
-        if(err) {
+        if (err) {
             res.json({
                 status: 'fail',
                 result: err,

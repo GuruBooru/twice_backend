@@ -275,7 +275,9 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,res){
                     callback(null, result)
                 },
                 function(err, result){            
-                    res.json(result);
+                    console.log(err);
+                    console.log(result);
+                    //res.json(result);
                 }
             ])
         }  

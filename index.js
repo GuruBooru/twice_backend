@@ -24,7 +24,7 @@ moment.tz.setDefault("Asia/Seoul");
 
 // 예약 전송
 // 30분마다 실행
-var j = schedule.scheduleJob('*/1 * * * *', (res) => {
+var j = schedule.scheduleJob('*/30 * * * *', (res) => {
     var query = `SELECT uid, token, message, bookingTime, photo
                 FROM booking
                 WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`;
@@ -39,7 +39,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
             for (let i = 0; i < rows.length; i++) {
                 posting.facebook_uploading(rows[i].photo, rows[i].message, rows[i].uid, rows[i].token, res);
             }
-        }
+         }
     });
 });
 
@@ -68,3 +68,12 @@ app.post('/booking', (req, res) => {
         }
     })
 });
+
+function postingSave(uid, token, postId) {
+    var query = `UPDATE booking SET bookingcol = '${postId}' 
+                WHERE uid = '${uid}' `
+}
+
+module.exports = {
+    postingSave,
+}

@@ -3,7 +3,7 @@ const mysql = require('mysql');
 const express = require('express');
 const db_config = require('./db_config');
 const schedule = require('node-schedule');
-const transfer = require('./facebook.js');
+const posting = require('./posting.js');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -24,7 +24,7 @@ moment.tz.setDefault("Asia/Seoul");
 
 // 예약 전송
 // 30분마다 실행
-var j = schedule.scheduleJob('*/30 * * * *', () => {
+var j = schedule.scheduleJob('*/1 * * * *', (res) => {
     var query = `SELECT uid, token, message, bookingTime, photo
                 FROM booking
                 WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`;
@@ -32,11 +32,12 @@ var j = schedule.scheduleJob('*/30 * * * *', () => {
     console.log(query);
 
     conn.query(query, (err, rows) => {
-        if(rows.length == 0){
+
+        if (err) {
             console.log(err);
         } else {
             for (let i = 0; i < rows.length; i++) {
-                transfer.facebook_uploading(rows[i].photo, rows[i].message, rows[i].uid, rows[i].token);
+                posting.facebook_uploading(rows[i].photo, rows[i].message, rows[i].uid, rows[i].token, res);
             }
         }
     });
@@ -50,13 +51,14 @@ app.post('/booking', (req, res) => {
     var token = req.body.token;
     var message = req.body.message;
     var bookingTime = req.body.bookingTime;
+    var photo = req.body.photo;
 
     // photo 있을 때 없을 때 나누기
-    var query = `INSERT INTO booking (uid, token, bookingTime, message) VALUES ('${id}', '${token}', '${bookingTime}', '${message}')`;
+    var query = `INSERT INTO booking (uid, token, bookingTime, message, photo) VALUES ('${id}', '${token}', '${bookingTime}', '${message}', '${photo}')`;
     console.log(query);
-    con.query(query, (err) => {
+    conn.query(query, (err) => {
         console.log('inserting query');
-        if(err) {
+        if (err) {
             res.json({
                 status: 'fail',
                 result: err,
@@ -64,5 +66,5 @@ app.post('/booking', (req, res) => {
         } else {
             res.send('success');
         }
-    })    
+    })
 });

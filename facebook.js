@@ -137,7 +137,7 @@ function multiphotosData(r_url,r_token,r_post_id,r_message,callback){
 }
 
 //facebook에 실제로 올리는 function // 임시저장 게시물을 묶어서 보내는 형태
-function postingMultiphotosData(r_message,r_post_id,r_token,idlist,r_res){
+function postingMultiphotosData(r_message,r_post_id,r_token,idlist,callback4){
     data = querystring.stringify({
         message : r_message,
         attached_media : idlist,
@@ -164,7 +164,7 @@ function postingMultiphotosData(r_message,r_post_id,r_token,idlist,r_res){
             postdata+=chunk;
         });
         httpsres.on('end',function(){
-            
+            callback4(postdata);
             //r_res.json(postdata);
             //return postdata;
         })
@@ -173,19 +173,19 @@ function postingMultiphotosData(r_message,r_post_id,r_token,idlist,r_res){
     httpsreq.end();
 }
 
-function decodeimage(access_image,filename,num,callback){
+function decodeimage(access_image,filename,callback1){
     // var url_image = '/public/'+filename+'.jpg';
     var buf = Buffer.from(access_image,'base64');
         fs.writeFile(path.join(__dirname,'/public/',filename+'.jpg'), buf, function(error){
         if(error){
             throw error;
     }else{
-        callback('/public/'+filename+'.jpg');
+        callback1('/public/'+filename+'.jpg');
     }
     }); 
 }
 //facebook multi 관련 총괄 function
-function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,callback3){
+function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,callback3){
     postingidlist=[];
     count = Object.keys(imagearray).length;
     postingobject = []
@@ -194,8 +194,9 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,
         
         async.waterfall([
             function(callback){ // image에 대하여 decode 과정이 필요
-                var filename = r_posting_id+"_"+i+'_'+num;
-                decodeimage(imagearray[i],filename,num,function(url_image){
+                var filename = r_posting_id+"_"+i;
+                decodeimage(imagearray[i],filename,function(url_image){
+                    console.log('#url_image' + url_image);
                     callback(null, url_image)
                 });
             },
@@ -215,20 +216,16 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,
                 temp = {media_fbid:testc.id};
                 postingobject.push(temp);
                 if(postingobject.length==count){                
-                    facebook_finish_info = postingMultiphotosData(r_message,r_posting_id,r_token,JSON.stringify(postingobject));
+                     postingMultiphotosData(r_message,r_posting_id,r_token,JSON.stringify(postingobject),function(data){
+                        facebook_finish_info = data;
+                        callback(null,facebook_finish_info)
+                     });
                 }
-                callback(null,postingidlist)
-            },function(postinglist,callback){
+            },function(facebook_finish_info,callback){
                 //facebook_posting
                 
                 facebook_finish = 1;
-                if(is_facebook_posting&is_twitter_posting){
-                    if(facebook_finish&twitter_finish){
-                        callback3(facebook_finish_info+twitter_finish_info);
-                    }
-                }else{
-                    callback3(facebook_finish_info);
-                }
+                callback3(facebook_finish_info);
             }
         ])
     }
@@ -237,7 +234,7 @@ function posting_data_in_facebook(imagearray,r_message,r_posting_id,r_token,num,
 
 
 
-function facebook_uploading(r_images,r_message,r_posting_id,r_token,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting,callback2,callback3){
+function facebook_uploading(r_images,r_message,r_posting_id,r_token,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting,callback2){
         console.log('#facebook_posting')
         imagecount = Object.keys(r_images).length;
         console.log('twitter_is'+is_twitter_posting);
@@ -280,14 +277,14 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,facebook_fin
             console.log('#facebook_posting_message');
             async.waterfall([
                 function(callback){
-                    result = messageData(r_message,r_token,function(data){
+                    messageData(r_message,r_token,function(data){
                         facebook_finish_info = data;
                         twitter_finish = 1;
                         if(is_facebook_posting&is_twitter_posting){
                             console.log('#facebook_twitter_message_is in');
                             if(facebook_finish&twitter_finish){
                                 console.log('#facebook_twitter_message_done with f')
-                                callback3(facebook_finish_info,twitter_finish_info);
+                                callback2(facebook_finish_info,twitter_finish_info);
                             }
                         }else{
                             console.log('#facebook message callback3');
@@ -295,7 +292,7 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,facebook_fin
                             callback2(facebook_finish_info);
                         } 
                     })
-                    callback(null, result)
+                    callback(null, facebook_finish_info)
                 },
                 function(err,result){       
                 }
@@ -369,9 +366,11 @@ function twitter_posting_i_m(r_status,r_images,facebook_finish, twitter_finish, 
         async.waterfall([
             function(callback){
                 //console.log(req.body.twitter)
-                twitter_finish_info = posting_twitter(client,r_status,r_images)
+                posting_twitter(client,r_status,r_images,function(data){
+                    twitter_finish_info = data;
+                    callback(null, facebook_finish_info)
+                })
                 twitter_finish = 1;
-                callback(null, result)
             },
             function(err,result){
                 console.log('twitter_finish posting' + twitter_finish_info);
@@ -388,7 +387,7 @@ function twitter_posting_i_m(r_status,r_images,facebook_finish, twitter_finish, 
         ])
     }
 }
-function posting_twitter(client,r_message,r_images){
+function posting_twitter(client,r_message,r_images,callback2){
     var image_ids_t=''
     count = Object.keys(r_images).length;
     
@@ -418,10 +417,10 @@ function posting_twitter(client,r_message,r_images){
                         client.post('statuses/update', status, function(error, tweet, response) {
                             if (!error) {
                                   console.log(tweet);
-                                  return (tweet);
+                                  callback2(tweet)
                               }else{
                                   console.log(error);
-                                  return (error);
+                                  callback2(error)
                               }
                         });
                   
@@ -487,6 +486,8 @@ app.post('/facebook_page',function(req, res) {
                     jsonp = JSON.parse('{"facebook":"'+facebook_finish_info+'","twitter":'+JSON.stringify(twitter_finish_info)+'}');
                 else
                     jsonp = JSON.parse('{"facebook":'+facebook_finish_info+',"twitter":'+JSON.stringify(twitter_finish_info)+'}');
+
+                console.log(jsonp);
                 
                 twitter_finish = 1;
                 if((facebook_finish == is_facebook_posting) & twitter_finish){

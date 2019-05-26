@@ -2,6 +2,7 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql');
 const express = require('express');
 const db_config = require('./db_config');
+
 const schedule = require('node-schedule');
 const posting = require('./posting.js');
 
@@ -51,10 +52,12 @@ app.post('/booking', (req, res) => {
     var token = req.body.token;
     var message = req.body.message;
     var bookingTime = req.body.bookingTime;
+
     var photo = req.body.photo;
 
     // photo 있을 때 없을 때 나누기
     var query = `INSERT INTO booking (uid, token, bookingTime, message, photo) VALUES ('${id}', '${token}', '${bookingTime}', '${message}', '${photo}')`;
+
     console.log(query);
     conn.query(query, (err) => {
         console.log('inserting query');
@@ -66,6 +69,7 @@ app.post('/booking', (req, res) => {
         } else {
             res.send('success');
         }
+
     })
 });
 

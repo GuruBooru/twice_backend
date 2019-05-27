@@ -22,8 +22,6 @@ conn.query('SET GLOBAL connect_timeout=28800');
 conn.query('SET GLOBAL wait_timeout=28800');
 conn.query('SET GLOBAL interactive_timeout=28800');
 
-
-
 //POSTING API//
 app.post('/facebook_page', function (req, res) {
     var facebook_finish = 0;
@@ -38,36 +36,39 @@ app.post('/facebook_page', function (req, res) {
     if (req.body.time) { // 저장인 경우
         //facebook에 올리는 작업에 필요한 것들 db에 저장하기 imagearray/message/posting_id/token/time/
 
-        console.log(req.body.facebook.length);
-        imagecount = Object.keys(req.body.images).length;
-
-        //image_string = '['+req.body.images+']';
-    //    console.log(JSON.parse(image_string));
-        for (i = 0; i < req.body.facebook.length; i++) {
-
-            var query = `INSERT INTO booking (uid, token, tvn, cgv, bookingTime, message, photo)
-                            VALUES ('${req.body.facebook[i].page_id}',
-                                    '${req.body.facebook[i].token}', 
-                                    '${req.body.twitter.tvn}', 
-                                    '${req.body.twitter.cgv}', 
-                                    '${req.body.time}', 
-                                    '${req.body.message}', 
-                                    '${JSON.stringify(`${req.body.images}`)}')`;
-            
-            console.log(query);
-
-            conn.query(query, (err) => {
-                console.log('inserting query');
-                if (err) {
-                    res.json({
-                        status: 'fail',
-                        result: err,
-                    });
-                } else {
-                    res.send('success');
-                }
-            });
+        // image_string = '['+req.body.images+']';
+        // console.log(JSON.parse(image_string));
+        
+        if(req.body.facebook) {
+            for (i = 0; i < req.body.facebook.length; i++) {
+                var query = `INSERT INTO booking (pageId, token, tvn, cgv, bookingTime, message, photo)
+                                VALUES ('${req.body.facebook[i].page_id}',
+                                        '${req.body.facebook[i].token}', 
+                                        '${req.body.twitter.tvn}', 
+                                        '${req.body.twitter.cgv}', 
+                                        '${req.body.time}', 
+                                        '${req.body.message}', 
+                                        '${JSON.stringify(`${req.body.images}`)}')`;
+                
+                console.log(query);
+    
+                conn.query(query, (err) => {
+                    console.log('inserting query');
+                    if (err) {
+                        res.json({
+                            status: 'fail',
+                            result: err,
+                        });
+                    } else {
+                        res.send('success');
+                    }
+                });
+            }
+        } else {
+            var query = `INSERT INTO booking (tvn, cgv, bookingTime, message, photo)
+                        VALUES ('${req.body.twitter.tvn}', '${req.body.twitter.cgv}', '${req.body.time}', '${req.body.message}', '${JSON.stringify(`${req.body.images}`)}')`
         }
+        
     }
     else {
         isTime = 0;
@@ -137,7 +138,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
     var twitter_finish_info = '';
     var is_twitter_posting = 0;
 
-    var query = `SELECT uid, token, tvn, cgv, message, bookingTime, photo
+    var query = `SELECT pageId, token, tvn, cgv, message, bookingTime, photo
                 FROM booking
                 WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`;
 
@@ -150,7 +151,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
             for (let i = 0; i < rows.length; i++) {
                 
                 // facebook posting
-                if (rows[i].uid  && rows[i].token) {
+                if (rows[i].pageId  && rows[i].token) {
                     console.log('facebook posting');
                     image_string = rows[i].photo;
                     
@@ -161,7 +162,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
                         photos = image_string.split(',');
                     }
                     //console.log(photos);
-                    facebook_uploading(photos, rows[i].message, rows[i].uid, rows[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
+                    facebook_uploading(photos, rows[i].message, rows[i].pageId, rows[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
                         facebook_finish_info += data;
                         if (facebook_finish_info == '')
                             jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');

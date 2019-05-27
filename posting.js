@@ -36,10 +36,10 @@ app.post('/facebook_page', function (req, res) {
     console.log(facebook_finish);
     console.log('facebook_page is connected')
     if (req.body.time) { // 저장인 경우
+        console.log('this is time posting');
         //facebook에 올리는 작업에 필요한 것들 db에 저장하기 imagearray/message/posting_id/token/time/
 
         console.log(req.body.facebook.length);
-        imagecount = Object.keys(req.body.images).length;
 
         //image_string = '['+req.body.images+']';
     //    console.log(JSON.parse(image_string));
@@ -63,7 +63,8 @@ app.post('/facebook_page', function (req, res) {
                         status: 'fail',
                         result: err,
                     });
-                } else {
+                } 
+                else {
                     res.send('success');
                 }
             });

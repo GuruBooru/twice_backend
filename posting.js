@@ -41,8 +41,6 @@ app.post('/facebook_page', function (req, res) {
         console.log(req.body.facebook.length);
         imagecount = Object.keys(req.body.images).length;
 
-        //image_string = '['+req.body.images+']';
-    //    console.log(JSON.parse(image_string));
         for (i = 0; i < req.body.facebook.length; i++) {
 
             var query = `INSERT INTO booking (uid, token, tvn, cgv, bookingTime, message, photo)
@@ -152,16 +150,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
                 // facebook posting
                 if (rows[i].uid  && rows[i].token) {
                     console.log('facebook posting');
-                    image_string = rows[i].photo;
-                    
-                    if(image_string == '""'){
-                        photos = [];
-                    }
-                    else {
-                        photos = image_string.split(',');
-                    }
-                    //console.log(photos);
-                    facebook_uploading(photos, rows[i].message, rows[i].uid, rows[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
+                    facebook_uploading(JSON.parse(rows[i].photo), rows[i].message, rows[i].uid, rows[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
                         facebook_finish_info += data;
                         if (facebook_finish_info == '')
                             jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
@@ -174,14 +163,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
                 // twitter posting
                 if (rows[i].tvn && rows[i].cgv) {
                     console.log('twitter posting');
-                    image_string = rows[i].photo;
-                    if(image_string == '""'){
-                        photos = [];
-                    }
-                    else {
-                        photos = image_string.split(',');
-                    }
-                    twitter_posting_i_m(rows[i].message, photos, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, rows[i].tvn, rows[i].cgv, (data) => {
+                    twitter_posting_i_m(rows[i].message, JSON.parse(rows[i].photo), facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, rows[i].tvn, rows[i].cgv, (data) => {
                         console.log('twitter finish_info data' + JSON.stringify(data));
                         twitter_finish_info = data;
                         if (facebook_finish_info == '')
@@ -478,10 +460,9 @@ function posting_data_in_facebook(imagearray, r_message, r_posting_id, r_token, 
 }
 
 function facebook_uploading(r_images, r_message, r_posting_id, r_token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, callback2) {
-    console.log(r_images);
     console.log('#facebook_posting')
     imagecount = Object.keys(r_images).length;
-    console.log('#imagecount' + imagecount);
+    console.log(r_images);
     console.log('twitter_is ' + is_twitter_posting);
     /*if(count==1){ // 하나의 이미지에 대해서 전송하는 경우 
         console.log('#one_image_post');
@@ -569,7 +550,6 @@ function twitter_posting_i_m(r_status, r_images, facebook_finish, twitter_finish
         access_token_key: cgv,
         access_token_secret: tvn
     });
-    //console.log('t' + r_images);
     image_count = Object.keys(r_images).length;
     if (image_count == 0) { // image non
         console.log('#twitter_non image posting')

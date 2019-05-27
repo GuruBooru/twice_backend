@@ -82,16 +82,24 @@ app.post('/facebook_page', function (req, res) {
             for (i = 0; i < count; i++) {
                 facebook_uploading(req.body.images, req.body.message, req.body.facebook[i].page_id, req.body.facebook[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function (data) {
                     facebook_finish_info += data;
-                    if (facebook_finish_info == '')
-                        jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
-                    else
-                        jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                    try{
+                        if (facebook_finish_info == '')
+                            jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                        else
+                            jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                    }catch(e){
+                        console.log(e);
+                    }
                     facebook_finish = 1;
 
                     if ((facebook_finish) & (is_twitter_posting == twitter_finish)) {
                         if (!isTime) {
                             console.log(jsonp);
-                            res.json(jsonp);
+                            try{
+                                res.json(jsonp);
+                            }catch(e){
+                                console.log(e);
+                            }
                         }
                     }
                 })
@@ -103,18 +111,25 @@ app.post('/facebook_page', function (req, res) {
             twitter_posting_i_m(req.body.message, req.body.images, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, req.body.twitter.tvn, req.body.twitter.cgv, function (data) {
                 console.log('twitter finish_info data' + JSON.stringify(data));
                 twitter_finish_info = data;
+                try{
                 if (facebook_finish_info == '')
                     jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
                 else
                     jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                    console.log(jsonp);
 
-                console.log(jsonp);
-
+                }catch(e){
+                    console.log(e);
+                }
+                
                 twitter_finish = 1;
                 if ((facebook_finish == is_facebook_posting) & twitter_finish) {
                     if (!isTime) {
-                        console.log(jsonp);
-                        res.json(jsonp);
+                        try{
+                            res.json(jsonp);
+                        }catch(e){
+                            console.log(e);
+                        }
                     }
                 }
             });

@@ -39,37 +39,50 @@ app.post('/facebook_page', function (req, res) {
 
         // image_string = '['+req.body.images+']';
         // console.log(JSON.parse(image_string));
-        
-        if(req.body.facebook) {
+
+        if (req.body.facebook) {
             for (i = 0; i < req.body.facebook.length; i++) {
-                var query = `INSERT INTO booking (uid, pageId, token, tvn, cgv, bookingTime, message, photo)
+                var query = `INSERT INTO booking (uid, pageId, token, bookingTime, message, photo)
                                 VALUES ('${req.body.uid}', 
                                         '${req.body.facebook[i].page_id}',
                                         '${req.body.facebook[i].token}', 
-                                        '${req.body.twitter.tvn}', 
-                                        '${req.body.twitter.cgv}', 
                                         '${req.body.time}', 
                                         '${req.body.message}', 
                                         '${JSON.stringify(`${req.body.images}`)}')`;
-                
+
                 console.log(query);
-    
+
                 conn.query(query, (err) => {
-                    console.log('inserting query');
+                    console.log('inserting facebook query');
                     if (err) {
                         res.json({
                             status: 'fail',
                             result: err,
                         });
                     } else {
-                        res.send('success');
+                        console.log('facebook success');
                     }
                 });
             }
-        } else {
-            var query = `INSERT INTO booking (tvn, cgv, bookingTime, message, photo)
-                        VALUES ('${req.body.twitter.tvn}', '${req.body.twitter.cgv}', '${req.body.time}', '${req.body.message}', '${JSON.stringify(`${req.body.images}`)}')`
+        } 
+        if (req.body.twitter) {
+            var query = `INSERT INTO booking (uid, tvn, cgv, bookingTime, message, photo)
+                        VALUES ('${req.body.uid}', ${req.body.twitter.tvn}', '${req.body.twitter.cgv}', '${req.body.time}', '${req.body.message}', '${JSON.stringify(`${req.body.images}`)}')`
+            console.log(query);
+
+            conn.query(query, (err) => {
+                console.log('inserting twitter query');
+                if (err) {
+                    res.json({
+                        status: 'fail',
+                        result: err,
+                    });
+                } else {
+                    console.log('twitter success');
+                }
+            });
         }
+        res.send('success');
     }
     else {
         isTime = 0;
@@ -83,12 +96,12 @@ app.post('/facebook_page', function (req, res) {
             for (i = 0; i < count; i++) {
                 facebook_uploading(req.body.images, req.body.message, req.body.facebook[i].page_id, req.body.facebook[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function (data) {
                     facebook_finish_info += data;
-                    try{
+                    try {
                         if (facebook_finish_info == '')
                             jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
                         else
                             jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
-                    }catch(e){
+                    } catch (e) {
                         console.log(e);
                     }
                     facebook_finish = 1;
@@ -96,9 +109,9 @@ app.post('/facebook_page', function (req, res) {
                     if ((facebook_finish) & (is_twitter_posting == twitter_finish)) {
                         if (!isTime) {
                             console.log(jsonp);
-                            try{
+                            try {
                                 res.json(jsonp);
-                            }catch(e){
+                            } catch (e) {
                                 console.log(e);
                             }
                         }
@@ -112,23 +125,23 @@ app.post('/facebook_page', function (req, res) {
             twitter_posting_i_m(req.body.message, req.body.images, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, req.body.twitter.tvn, req.body.twitter.cgv, function (data) {
                 console.log('twitter finish_info data' + JSON.stringify(data));
                 twitter_finish_info = data;
-                try{
-                if (facebook_finish_info == '')
-                    jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
-                else
-                    jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                try {
+                    if (facebook_finish_info == '')
+                        jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                    else
+                        jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
                     console.log(jsonp);
 
-                }catch(e){
+                } catch (e) {
                     console.log(e);
                 }
-                
+
                 twitter_finish = 1;
                 if ((facebook_finish == is_facebook_posting) & twitter_finish) {
                     if (!isTime) {
-                        try{
+                        try {
                             res.json(jsonp);
-                        }catch(e){
+                        } catch (e) {
                             console.log(e);
                         }
                     }
@@ -165,13 +178,13 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
             console.log(err);
         } else {
             for (let i = 0; i < rows.length; i++) {
-                
+
                 // facebook posting
-                if (rows[i].pageId  && rows[i].token) {
+                if (rows[i].pageId && rows[i].token) {
                     console.log('facebook posting');
                     image_string = rows[i].photo;
-                    
-                    if(image_string == '""'){
+
+                    if (image_string == '""') {
                         photos = [];
                     }
                     else {
@@ -192,7 +205,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
                 if (rows[i].tvn && rows[i].cgv) {
                     console.log('twitter posting');
                     image_string = rows[i].photo;
-                    if(image_string == '""'){
+                    if (image_string == '""') {
                         photos = [];
                     }
                     else {
@@ -221,39 +234,72 @@ app.post('/destroy', (req, res) => {
     console.log(req.originalUrl);
 
     var query = `DELETE FROM booking 
-                WHERE uid = '${req.body.uid}'`;
+                WHERE uid = '${req.params.uid}'`;
 
-    conn.query(query, (err, result) => {
+    conn.query(query, (err) => {
         console.log('Delete Rows');
-        if(err) {
+        if (err) {
             res.json({
                 status: 'fail',
                 result: err,
             });
         } else {
-                res.send('success');
+            res.send('success');
         };
     });
 });
 
 // 사용자 지정 게시글 전송
 app.post('/check_post', (req, res) => {
-    console.log(req.originalUrl);
+    console.log(req.params.uid);
 
-    var query = `SELECT bookingNo, uid, message, bookingTime 
+    var query = `SELECT bookingNo, uid, message, bookingTime, token, tvn, mbc 
                 FROM booking 
-                WHERE uid = '${req.body}' 
+                WHERE uid = '${req.body.uid}' 
                 AND bookingTime > '${moment().format('YYYYMMDDHHmm')}'`;
 
-    conn.query(query, (err) => {
+    conn.query(query, (err, rows) => {
         console.log('select delete');
-        if(err) {
+        if (err) {
+            console.log('fail');
             res.json({
                 status: 'fail',
                 result: err,
             });
         } else {
-            res.send('');
+            console.log('check_post success' + rows.length);
+            json_string = '{ "data":[';
+
+            for (i = 0; i < rows.length; i++) {
+                if (i != 0) {
+                    json_string += ',';
+                }
+                json_string += `{"post_id" :  "${rows[i].bookingNo}"`;
+                // json_string += `,"uid" : '  "${rows[i].uid}"`;
+                json_string += `,"message" :  "${rows[i].message}"`;
+                json_string += `,"bookingTime" :  "${rows[i].bookingTime}"`;
+                if (rows[i].token) {
+                    json_string += ',"facebook" : true';
+                } else {
+                    json_string += ',"facebook" : false';
+                }
+                if (rows[i].tvn) {
+                    json_string += ',"twitter" : true';
+                } else {
+                    json_string += ',"twitter" : false';
+                }
+                if (rows[i].mbc) {
+                    json_string += ',"instagram" : true';
+                } else {
+                    json_string += ',"instagram" : false';
+                }
+                json_string += '}';
+            }
+            json_string += ']}'
+
+            console.log(json_string);
+
+            res.json(JSON.parse(json_string));
         }
     });
 });
@@ -263,12 +309,12 @@ app.post('/delete', (req, res) => {
     console.log(req.originalUrl);
 
     var query = `DELETE FROM booking 
-                WHERE uid = '${req.body.uid}' 
-                AND bookingNo = '${req.body.bookingNo}'`;
+                WHERE uid = '${req.params.uid}' 
+                AND bookingNo = '${req.params.post_id}'`;
 
     conn.query(query, (err) => {
         console.log('Delete query');
-        if(err) {
+        if (err) {
             res.json({
                 status: 'fail',
                 result: err,

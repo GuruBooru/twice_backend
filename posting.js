@@ -205,12 +205,43 @@ app.post('/destroy', (req, res) => {
 app.post('/check_post', (req, res) => {
     console.log(req.originalUrl);
 
-    var query = ``;
+    var query = `SELECT bookingNo, uid, message, bookingTime 
+                FROM booking 
+                WHERE uid = '${req.body}' 
+                AND bookingTime > '${moment().format('YYYYMMDDHHmm')}'`;
+
+    conn.query(query, (err) => {
+        console.log('select delete');
+        if(err) {
+            res.json({
+                status: 'fail',
+                result: err,
+            });
+        } else {
+            res.send('');
+        }
+    });
 });
 
 // 사용자 지정 게시글 삭제
 app.post('/delete', (req, res) => {
+    console.log(req.originalUrl);
 
+    var query = `DELETE FROM booking 
+                WHERE uid = '${req.body.uid}' 
+                AND bookingNo = '${req.body.bookingNo}'`;
+
+    conn.query(query, (err) => {
+        console.log('Delete query');
+        if(err) {
+            res.json({
+                status: 'fail',
+                result: err,
+            });
+        } else {
+            res.send('success');
+        }
+    });
 });
 
 

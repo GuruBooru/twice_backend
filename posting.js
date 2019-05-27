@@ -41,8 +41,9 @@ app.post('/facebook_page', function (req, res) {
         
         if(req.body.facebook) {
             for (i = 0; i < req.body.facebook.length; i++) {
-                var query = `INSERT INTO booking (pageId, token, tvn, cgv, bookingTime, message, photo)
-                                VALUES ('${req.body.facebook[i].page_id}',
+                var query = `INSERT INTO booking (uid, pageId, token, tvn, cgv, bookingTime, message, photo)
+                                VALUES ('${req.body.uid}', 
+                                        '${req.body.facebook[i].page_id}',
                                         '${req.body.facebook[i].token}', 
                                         '${req.body.twitter.tvn}', 
                                         '${req.body.twitter.cgv}', 

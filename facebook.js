@@ -302,7 +302,8 @@ function facebook_uploading(r_images,r_message,r_posting_id,r_token,facebook_fin
 }
 
 
-function saveImageToDisk(url, localPath) {var fullUrl = url;
+function saveImageToDisk(url, localPath) {
+    var fullUrl = url;
     var file = fs.createWriteStream(localPath);
     var request = https.get(url, function(response) {
     response.pipe(file);
@@ -313,18 +314,18 @@ function saveImageToDisk(url, localPath) {var fullUrl = url;
 
 //TWITTER POSTING//
 //access_token이 받는 부분인것 같기도하고... //access token 부분은 후에 수정하기
-CONSUMER_KEY = 'L5nSnLJQZnHIeWvFqXgCOfTYE'
-CONSUMER_SECRET ='s5dVuVbQRi7NaJ0Gl6oAOC1nu3ab9wNMQpB4gWk9yyZgJJSqzc'
+CONSUMER_KEY = 'H3qNM38a3TzDXpWz6yY1hknFy'
+CONSUMER_SECRET ='GU4uxItEP3ZM926o1NcUP2gGbBoivm4cWge9dzxsvpJFLHLzRe'
 ACCESS_TOKEN = '1093422729988960256-6qfauDfkxEZzhhE2ncDcLTpQrRQZth'
 TOKEN_SECRET = 'Lnbqbk4To9HWb29F5nVGN5DBVVBjFha1lTJqn03nOOxgY'
 
 
-function twitter_posting_i_m(r_status,r_images,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting,callback2){ 
+function twitter_posting_i_m(r_status,r_images,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting,tvn,cgv,callback2){ 
     var client = new Twitter ({
         consumer_key : CONSUMER_KEY,
         consumer_secret : CONSUMER_SECRET,
-        access_token_key : ACCESS_TOKEN,
-        access_token_secret : TOKEN_SECRET
+        access_token_key : cgv,
+        access_token_secret : tvn
     });
     image_count = Object.keys(r_images).length;
     if(image_count == 0){ // image non
@@ -452,13 +453,14 @@ app.post('/facebook_page',function(req, res) {
     else{
         isTime = 0;
         var jsonp = ''
+        console.log(req.body);
         if(req.body.facebook){ // facebook 인경우
             is_facebook_posting = 1;
             console.log('#facebook page is start');
-            count = Object.keys(req.body.facebook.data).length;
+            count = Object.keys(req.body.facebook).length;
 
             for(i = 0; i<count;i++){
-                facebook_uploading(req.body.facebook.data[i].images,req.body.facebook.data[i].message,req.body.facebook.data[i].posting_id,req.body.facebook.data[i].token,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function(data){
+                facebook_uploading(req.body.images,req.body.message,req.body.facebook[i].page_id,req.body.facebook[i].token,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function(data){
                     facebook_finish_info += data;
                     if(facebook_finish_info =='')
                         jsonp = JSON.parse('{"facebook":"'+facebook_finish_info+'","twitter":'+JSON.stringify(twitter_finish_info)+'}');
@@ -474,12 +476,11 @@ app.post('/facebook_page',function(req, res) {
                     }
                 })
             }
-
         }
         if(req.body.twitter){
             is_twitter_posting = 1;
             console.log('#twitter page is start');
-            twitter_posting_i_m(req.body.twitter.data[0].message,req.body.twitter.data[0].images,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function(data){
+            twitter_posting_i_m(req.body.message,req.body.images,facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting,req.body.twitter.tvn,req.body.twitter.cgv, function(data){
                 console.log('twitter finish_info data' + JSON.stringify(data));    
                 twitter_finish_info = data;
                 if(facebook_finish_info =='')

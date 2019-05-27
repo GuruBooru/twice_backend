@@ -15,7 +15,7 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '1000mb', extended: true }));
 app.use('/public', express.static('public'));
 
-var this_url = 'http://100.24.24.64:3355'
+var this_url = 'http://100.24.24.64:8090'
 
 var conn = mysql.createConnection(db_config);
 conn.query('SET GLOBAL connect_timeout=28800');
@@ -676,4 +676,4 @@ function posting_twitter(client, r_message, r_images, callback2) {
     }
 }
 
-app.listen(3355, () => console.log('Posting listening on port 3355'));
+app.listen(8090, () => console.log('Posting listening on port 8090'));

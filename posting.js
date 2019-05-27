@@ -49,16 +49,11 @@ app.post('/facebook_page', function (req, res) {
                                         '${req.body.time}', 
                                         '${req.body.message}', 
                                         '${JSON.stringify(`${req.body.images}`)}')`;
-
                 console.log(query);
-
                 conn.query(query, (err) => {
                     console.log('inserting facebook query');
                     if (err) {
-                        res.json({
-                            status: 'fail',
-                            result: err,
-                        });
+                        console.log(err);
                     } else {
                         console.log('facebook success');
                     }
@@ -69,14 +64,10 @@ app.post('/facebook_page', function (req, res) {
             var query = `INSERT INTO booking (uid, tvn, cgv, bookingTime, message, photo)
                         VALUES ('${req.body.uid}', ${req.body.twitter.tvn}', '${req.body.twitter.cgv}', '${req.body.time}', '${req.body.message}', '${JSON.stringify(`${req.body.images}`)}')`
             console.log(query);
-
             conn.query(query, (err) => {
                 console.log('inserting twitter query');
                 if (err) {
-                    res.json({
-                        status: 'fail',
-                        result: err,
-                    });
+                    console.log(err);
                 } else {
                     console.log('twitter success');
                 }
@@ -234,7 +225,7 @@ app.post('/destroy', (req, res) => {
     console.log(req.originalUrl);
 
     var query = `DELETE FROM booking 
-                WHERE uid = '${req.params.uid}'`;
+                WHERE uid = '${req.query.uid}'`;
 
     conn.query(query, (err) => {
         console.log('Delete Rows');
@@ -251,12 +242,13 @@ app.post('/destroy', (req, res) => {
 
 // 사용자 지정 게시글 전송
 app.post('/check_post', (req, res) => {
-    console.log(req.params.uid);
+    console.log(req.query.uid);
 
     var query = `SELECT bookingNo, uid, message, bookingTime, token, tvn, mbc 
                 FROM booking 
-                WHERE uid = '${req.body.uid}' 
+                WHERE uid = '${req.query.uid}' 
                 AND bookingTime > '${moment().format('YYYYMMDDHHmm')}'`;
+                console.log(moment().format('YYYYMMDDHHmm'))
 
     conn.query(query, (err, rows) => {
         console.log('select delete');
@@ -269,7 +261,7 @@ app.post('/check_post', (req, res) => {
         } else {
             console.log('check_post success' + rows.length);
             json_string = '{ "data":[';
-
+            console.log(rows.length);
             for (i = 0; i < rows.length; i++) {
                 if (i != 0) {
                     json_string += ',';

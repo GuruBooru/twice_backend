@@ -54,7 +54,7 @@ app.post('/facebook_page', function (req, res) {
             var facebookInfo = '{ "data":[';
             for (i = 0; i < req.body.facebook.length; i++) {
                 // facebookInfo += req.body.facebook[i];
-                if(i != 0) {
+                if(facebookInfo != '{ "data":[') {
                     facebookInfo += ',';
                 }
                 facebookInfo += `{"token" : "${req.body.facebook[i].token}"`;
@@ -86,10 +86,9 @@ app.post('/facebook_page', function (req, res) {
         if (req.body.facebook) { // facebook 인경우
             is_facebook_posting = 1;
             console.log('#facebook page is start');
-            count = Object.keys(req.body.facebook).length;
-
-            for (i = 0; i < count; i++) {
+            for (i = 0; i < req.body.facebook.length; i++) {
                 facebook_uploading(req.body.images, req.body.message, req.body.facebook[i].page_id, req.body.facebook[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, function (data) {
+                    console.log('facebook final' + data)
                     facebook_finish_info += data;
                     try {
                         if (facebook_finish_info == '')
@@ -111,7 +110,7 @@ app.post('/facebook_page', function (req, res) {
                             }
                         }
                     }
-                })
+                });
             }
         }
         if (req.body.twitter) {
@@ -181,26 +180,36 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
                     // infoJSON = JSON.parse(rows[i].facebookInfo);
 
                     subrows = rows[i].facebookInfo.substr(1).slice(0,-1)
-                    //console.log(subrows);
+                    console.log(subrows);
                     jsubrows = JSON.parse(subrows);
-                    //console.log('#이분이 문제입니다' + jsubrows);
+                    
+                    console.log('#이분이 문제입니다' + jsubrows + 'length'+jsubrows.data.length);
+                    
                     image_string = rows[i].photo;
-
+                    if (image_string == '""') {
+                        photos = [];
+                    }
+                    else {
+                        console.log('#왜 undifined인건지,,'+rows[i].photo);
+                        subpho = rows[i].photo.substr(1).slice(0,-1)
+                        
+                        photos = subpho.split(',');
+                        console.log(photos);
+                    }
+                    
                     for(j = 0; j<jsubrows.data.length;j++){
-                        if (image_string == '""') {
-                            photos = [];
-                        }
-                        else {
-                            photos = image_string.split(',');
-                        }
+                        //console.log('#facebook test' + photos[0]);
                         //console.log(rows[i].message+'j'+jsubrows.data[j].page_id,jsubrows.data[j].token);
-                        facebook_uploading(photos, rows[i].message, jsubrows.data[j].page_id, jsubrows.data[j].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
-                            facebook_finish_info += data;
+                        facebook_uploading(photos, rows[i].message, jsubrows.data[j].page_id, jsubrows.data[j].token, 1, 1, 1, 1, 1, 1, (data) => {
+                            console.log(data);
+                            /*facebook_finish_info += data;
+                            
                             if (facebook_finish_info == '')
                                 jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
                             else
                                 jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
-                            facebook_finish = 1;
+                            */
+                           facebook_finish = 1;
                         });
                     }
                 }
@@ -216,13 +225,13 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
                         photos = image_string.split(',');
                     }
                     twitter_posting_i_m(rows[i].message, photos, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, rows[i].tvn, rows[i].cgv, (data) => {
-                        console.log('twitter finish_info data' + JSON.stringify(data));
+                        //console.log('twitter finish_info data' + JSON.stringify(data));
                         twitter_finish_info = data;
-                        if (facebook_finish_info == '')
+                        /*if (facebook_finish_info == '')
                             jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
                         else
                             jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
-
+                        */
                         twitter_finish = 1;
 
                     });
@@ -362,6 +371,7 @@ function messageData(r_message, r_token, callback3) {
             facebook_finish = 1;
             facebook_finish_info = postdata;
             callback3(facebook_finish_info);
+            return 0;
         })
     });
     httpreq.write(data);
@@ -443,6 +453,7 @@ function multiphotosData(r_url, r_token, r_post_id, r_message, callback) {
             postdata += chunk;
         });
         httpsres.on('end', function () {
+            console.log(postdata);
             callback(postdata)
         })
     });
@@ -540,13 +551,14 @@ function posting_data_in_facebook(imagearray, r_message, r_posting_id, r_token, 
 
                 facebook_finish = 1;
                 callback3(facebook_finish_info);
+            },function (err, result) {
             }
         ])
     }
 }
 
 function facebook_uploading(r_images, r_message, r_posting_id, r_token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, callback2) {
-    console.log(r_images);
+    //console.log(r_images);
     console.log('#facebook_posting')
     imagecount = Object.keys(r_images).length;
     console.log('#imagecount' + imagecount);
@@ -746,6 +758,7 @@ function posting_twitter(client, r_message, r_images, callback2) {
                                     }
                                 });
                             }
+                        },function (err, result) {
                         }
                     ])
 

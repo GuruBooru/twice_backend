@@ -37,48 +37,52 @@ app.post('/facebook_page', function (req, res) {
         console.log('this is time posting');
         //facebook에 올리는 작업에 필요한 것들 db에 저장하기 imagearray/message/posting_id/token/time/
 
-        // image_string = '['+req.body.images+']';
-        // console.log(JSON.parse(image_string));
+        var insertInto = `INSERT INTO Booking (uid, bookingTime, message, photo`;
+        var values = `VALUES ('${req.body.uid}', '${req.body.time}', '${req.body.message}', '${JSON.stringify(`${req.body.images}`)}'`;
+
+        if (req.body.twitter) {
+            insertInto += `, tvn, cgv`;
+            values += `, '${req.body.twitter.tvn}', '${req.body.twitter.cgv}'`;
+        }
+        if (req.body.instagram) {
+            insertInto += `, mbc`;
+            values += `, '${req.body.instagram.mbc}'`;
+        }
 
         if (req.body.facebook) {
+            insertInto += `, facebookInfo`;
+            var facebookInfo = '{ "data":[';
             for (i = 0; i < req.body.facebook.length; i++) {
-                var query = `INSERT INTO booking (uid, pageId, token, bookingTime, message, photo)
-                                VALUES ('${req.body.uid}', 
-                                        '${req.body.facebook[i].page_id}',
-                                        '${req.body.facebook[i].token}', 
-                                        '${req.body.time}', 
-                                        '${req.body.message}', 
-                                        '${JSON.stringify(`${req.body.images}`)}')`;
-                console.log(query);
-                conn.query(query, (err) => {
-                    console.log('inserting facebook query');
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        console.log('facebook success');
-                    }
-                });
-            }
-        } 
-        if (req.body.twitter) {
-            var query = `INSERT INTO booking (uid, tvn, cgv, bookingTime, message, photo)
-                        VALUES ('${req.body.uid}', ${req.body.twitter.tvn}', '${req.body.twitter.cgv}', '${req.body.time}', '${req.body.message}', '${JSON.stringify(`${req.body.images}`)}')`
-            console.log(query);
-            conn.query(query, (err) => {
-                console.log('inserting twitter query');
-                if (err) {
-                    console.log(err);
-                } else {
-                    console.log('twitter success');
+                // facebookInfo += req.body.facebook[i];
+                if(i != 0) {
+                    facebookInfo += ',';
                 }
-            });
+                facebookInfo += `{"token" : "${req.body.facebook[i].token}"`;
+                facebookInfo += `, "page_id" : "${req.body.facebook[i].page_id}"}`;
+            }
+            facebookInfo += ']}';
+            //console.log(facebookInfo);
+            values += `, '${JSON.stringify(`${facebookInfo}`)}'`;
         }
-        res.send('success');
+        insertInto += `)`; values += `)`;
+
+        //console.log(insertInto);
+        var query = insertInto + values;
+
+        conn.query(query, (err) => {
+            console.log('inserting facebook query');
+            if (err) {
+                console.log(err);
+            } else {
+                console.log('twice booking success');
+                res.send('twice booking success');
+            }
+        });
     }
     else {
         isTime = 0;
         var jsonp = ''
-        console.log(req.body);
+        //console.log(req.body);
         if (req.body.facebook) { // facebook 인경우
             is_facebook_posting = 1;
             console.log('#facebook page is start');
@@ -158,8 +162,8 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
     var twitter_finish_info = '';
     var is_twitter_posting = 0;
 
-    var query = `SELECT pageId, token, tvn, cgv, message, bookingTime, photo
-                FROM booking
+    var query = `SELECT facebookInfo, tvn, cgv, message, bookingTime, photo
+                FROM Booking
                 WHERE bookingTime = ${moment().format('YYYYMMDDHHmm')}`;
 
     console.log(query);
@@ -168,31 +172,40 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
         if (err) {
             console.log(err);
         } else {
+            // console.log('good');
             for (let i = 0; i < rows.length; i++) {
 
                 // facebook posting
-                if (rows[i].pageId && rows[i].token) {
+                if (rows[i].facebookInfo) {
                     console.log('facebook posting');
+                    // infoJSON = JSON.parse(rows[i].facebookInfo);
+
+                    subrows = rows[i].facebookInfo.substr(1).slice(0,-1)
+                    //console.log(subrows);
+                    jsubrows = JSON.parse(subrows);
+                    //console.log('#이분이 문제입니다' + jsubrows);
                     image_string = rows[i].photo;
 
-                    if (image_string == '""') {
-                        photos = [];
+                    for(j = 0; j<jsubrows.data.length;j++){
+                        if (image_string == '""') {
+                            photos = [];
+                        }
+                        else {
+                            photos = image_string.split(',');
+                        }
+                        //console.log(rows[i].message+'j'+jsubrows.data[j].page_id,jsubrows.data[j].token);
+                        facebook_uploading(photos, rows[i].message, jsubrows.data[j].page_id, jsubrows.data[j].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
+                            facebook_finish_info += data;
+                            if (facebook_finish_info == '')
+                                jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                            else
+                                jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
+                            facebook_finish = 1;
+                        });
                     }
-                    else {
-                        photos = image_string.split(',');
-                    }
-                    //console.log(photos);
-                    facebook_uploading(photos, rows[i].message, rows[i].pageId, rows[i].token, facebook_finish, twitter_finish, facebook_finish_info, twitter_finish_info, is_twitter_posting, is_facebook_posting, (data) => {
-                        facebook_finish_info += data;
-                        if (facebook_finish_info == '')
-                            jsonp = JSON.parse('{"facebook":"' + facebook_finish_info + '","twitter":' + JSON.stringify(twitter_finish_info) + '}');
-                        else
-                            jsonp = JSON.parse('{"facebook":' + facebook_finish_info + ',"twitter":' + JSON.stringify(twitter_finish_info) + '}');
-                        facebook_finish = 1;
-                    });
                 }
 
-                // twitter posting
+                //  twitter posting
                 if (rows[i].tvn && rows[i].cgv) {
                     console.log('twitter posting');
                     image_string = rows[i].photo;
@@ -224,7 +237,7 @@ var j = schedule.scheduleJob('*/1 * * * *', (res) => {
 app.post('/destroy', (req, res) => {
     console.log(req.originalUrl);
 
-    var query = `DELETE FROM booking 
+    var query = `DELETE FROM Booking 
                 WHERE uid = '${req.query.uid}'`;
 
     conn.query(query, (err) => {
@@ -244,11 +257,11 @@ app.post('/destroy', (req, res) => {
 app.post('/check_post', (req, res) => {
     console.log(req.query.uid);
 
-    var query = `SELECT bookingNo, uid, message, bookingTime, token, tvn, mbc 
-                FROM booking 
+    var query = `SELECT bookingNo, uid, message, bookingTime, facebookInfo, tvn, mbc 
+                FROM Booking 
                 WHERE uid = '${req.query.uid}' 
                 AND bookingTime > '${moment().format('YYYYMMDDHHmm')}'`;
-                console.log(moment().format('YYYYMMDDHHmm'))
+    console.log(moment().format('YYYYMMDDHHmm'))
 
     conn.query(query, (err, rows) => {
         console.log('select delete');
@@ -270,7 +283,7 @@ app.post('/check_post', (req, res) => {
                 // json_string += `,"uid" : '  "${rows[i].uid}"`;
                 json_string += `,"message" :  "${rows[i].message}"`;
                 json_string += `,"bookingTime" :  "${rows[i].bookingTime}"`;
-                if (rows[i].token) {
+                if (rows[i].facebookInfo) {
                     json_string += ',"facebook" : true';
                 } else {
                     json_string += ',"facebook" : false';
@@ -624,8 +637,8 @@ function twitter_posting_i_m(r_status, r_images, facebook_finish, twitter_finish
         access_token_key: cgv,
         access_token_secret: tvn
     });
-    //console.log('t' + r_images);
     image_count = Object.keys(r_images).length;
+    
     if (image_count == 0) { // image non
         console.log('#twitter_non image posting')
         client.post('statuses/update', { status: r_status }, function (error, tweet, response) {
@@ -665,13 +678,13 @@ function twitter_posting_i_m(r_status, r_images, facebook_finish, twitter_finish
         async.waterfall([
             function (callback) {
                 //console.log(req.body.twitter)
+                console.log('#twitter 사진 갯수입니다~'+r_images.length);
                 posting_twitter(client, r_status, r_images, function (data) {
                     twitter_finish_info = data;
-                    callback(null, facebook_finish_info)
+                    callback(null, twitter_finish_info)
                 })
-                twitter_finish = 1;
             },
-            function (err, result) {
+            function (twitter_finish_info, result) {
                 console.log('twitter_finish posting' + twitter_finish_info);
                 callback2(twitter_finish_info);
                 /*if(is_facebook_posting&is_twitter_posting){
@@ -682,48 +695,59 @@ function twitter_posting_i_m(r_status, r_images, facebook_finish, twitter_finish
                     callback2(twitter_finish_info);
                 }*/
                 //res.json(err);
+            }, function (err, result) {
+                console.log(err);
             }
         ])
     }
 }
 function posting_twitter(client, r_message, r_images, callback2) {
     var image_ids_t = ''
+    var j = 0;
     count = Object.keys(r_images).length;
-
+    console.log(count);
     for (i = 0; i < count; i++) {
         (function (i, count, r_images, r_message, client) {
             client.post('media/upload', { media_data: r_images[i] }, function (error, media, response) {
                 if (!error) {
-                    console.log(i);
-                    console.log(image_ids_t)
-                    if (image_ids_t == '') {
-                        image_ids_t += media.media_id_string;
-                    }
-                    else {
-                        image_ids_t += (',' + media.media_id_string);
-                    }
-                    console.log('i' + i + 'count' + (count - 1));
-                    if (i == (count - 1)) {
-                        console.log('statuses + ' + image_ids_t);
-                        //post_data_t(image_ids_t,r_message);
-                        var status = {
-                            status: r_message, //이거 변경하기
-                            media_ids: image_ids_t // Pass the media id string
-                        }
-                        console.log(image_ids_t);
-                        console.log(r_message)
-                        console.log('update');
-                        client.post('statuses/update', status, function (error, tweet, response) {
-                            if (!error) {
-                                console.log(tweet);
-                                callback2(tweet)
-                            } else {
-                                console.log(error);
-                                callback2(error)
+                    async.waterfall([
+                        function (callback) { // image에 대하여 decode 과정이 필요
+                            console.log(i);
+                            console.log(image_ids_t)
+                            if (image_ids_t == '') {
+                                image_ids_t += media.media_id_string;
+                                j += 1;
                             }
-                        });
-
-                    }
+                            else {
+                                image_ids_t += (',' + media.media_id_string);
+                                j += 1;
+                            }
+                            callback(null,image_ids_t,j);
+                        },
+                        function (image_ids_t,j, callback) {
+                            console.log('hmm... 언제나오냥....' + i)
+                            console.log('i' + i + 'count' + (count - 1));
+                            console.log('statuses + ' + image_ids_t);
+                            if (j == (count)) {
+                                //post_data_t(image_ids_t,r_message);
+                                var status = {
+                                    status: r_message, //이거 변경하기
+                                    media_ids: image_ids_t // Pass the media id string
+                                }
+                                console.log(image_ids_t);
+                                console.log('update');
+                                client.post('statuses/update', status, function (error, tweet, response) {
+                                    if (!error) {
+                                        console.log(tweet);
+                                        callback2(tweet)
+                                    } else {
+                                        console.log(error);
+                                        callback2(error)
+                                    }
+                                });
+                            }
+                        }
+                    ])
 
                 }
             });

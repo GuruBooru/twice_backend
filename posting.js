@@ -314,8 +314,8 @@ app.post('/delete', (req, res) => {
     console.log(req.originalUrl);
 
     var query = `DELETE FROM booking 
-                WHERE uid = '${req.params.uid}' 
-                AND bookingNo = '${req.params.post_id}'`;
+                WHERE uid = '${req.query.uid}' 
+                AND bookingNo = '${req.query.post_id}'`;
 
     conn.query(query, (err) => {
         console.log('Delete query');
